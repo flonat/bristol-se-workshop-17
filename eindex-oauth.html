@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secured Software Engineering Forum</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body onload="setDefaultValues()">
+    <h3>SSE-Forum</h3>
+    <div class="main" id="useridentity" style="display:block">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" placeholder="Enter Your Name" required>
+        <br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" placeholder="Enter Your Email" required>
+        <br>
+        <span style="display:flex; justify-content:flex-end; width:100%; padding:0;">
+            <!-- <button type="submit" onclick="makeRequest()"  style="float: right;">Join</button> -->
+            <input type="button" onclick="initWSConnection()" value="Join" />
+        </span>
+    </div>
+
+    <div class='main' id="discforum" style="display:none">
+        <span style="display:flex; justify-content:flex-end; width:100%; padding: 3px;">
+            <span id="name_label" style="justify-content: left; width:100%;"></span><button onclick="logout()"
+                class="buttonToLink">logout</button>
+        </span>
+        <br>
+        <!-- Messages will be displayed here -->
+        <div class="postdiv" id="msgcontainer">
+            <!-- <span class="label"><small>Discussions</small></span> -->
+            <table id="tab" style="width:100%">
+                <tr>
+                    <th style="width: 10px;"> </th>
+                    <th> </th>
+                </tr>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <!-- Message input -->
+        <textarea id="messageInput" type="text" placeholder="Type a message"></textarea>
+        <br>
+        <span style="display:flex; justify-content:flex-end; width:100%; padding:0;">
+            <br>
+            <input type="button" value="Send" onclick="sendMessage()" />
+        </span>
+        <span id="participants_c" style="display:flex; justify-content:left; width:100%; padding: 3px;">
+        </span>
+
+    </div>
+
+</body>
+
+<script>
+    var ws
+    var name
+    var email
+
+    // This function initialises a web socket(ws) connection object to a client.
+    // Once the connection is established, the ws object listens to forum messages
+    // broadcast from the API server and send messages to the API server
+    async function initWSConnection() {
+        try {
+            ws = await connectToServer()
+
+            ws.onmessage = (webSocketMessage) => {
+                const messageBody = JSON.parse(webSocketMessage.data);
+
+                const table = document.getElementById("tab").getElementsByTagName('tbody')[0];
+                const newRow = table.insertRow();
+                const cell1 = newRow.insertCell(0);
+                const cell2 = newRow.insertCell(1);
+
+                var rgbColor = intToRGB(messageBody.color);
+                cell1.style.backgroundColor = rgbColor
+
+                let msg = undefined
+                if (decodeURIComponent(messageBody.name) === decodeURIComponent(name)) {
+                    msg = `<span class="label" style="float:right;">${messageBody.message}</span>
+                        <br>
+                       <span class="label1" style="float:right;"><small><b>${decodeURIComponent(messageBody.name)}, ${messageBody.time}</b></small></span>`
+                }
+                else {
+                    msg = `<span class="label" style="float:left;">${messageBody.message}</span>
+                        <br>
+                       <span class="label1" style="float:left;"><small>${decodeURIComponent(messageBody.name)}, ${messageBody.time}</small></span>`
+
+                }
+
+                cell2.innerHTML = msg
+
+                // scroll down to the most resent tet
+                const element = document.getElementById("msgcontainer");
+                element.scrollTop = element.scrollHeight;
+
+
+                document.getElementById("participants_c").innerHTML = `<span class="label" style="float:left;">participants: ${messageBody.activeparticipants}</span>`
+
+
+            };
+            if (ws.readyState === ws.OPEN) {
+                document.getElementById("useridentity").style.display = 'none'
+                document.getElementById("discforum").style.display = 'block'
+            }
+            ws.onclose = () => {
+                document.getElementById("useridentity").style.display = 'block'
+                document.getElementById("discforum").style.display = 'none'
+            };
+
+        } catch (error) {
+            console.log("Error:" + error);
+        }
+    }
+
+    async function logout() {
+        ws.close()
+    }
+
+    async function sendMessage() {
+        let message = document.getElementById("messageInput").value
+        ws.send(message);
+        document.getElementById("messageInput").value = ''
+
+    }
+
+    async function setDefaultValues() {
+        document.getElementById("name").value = decodeURIComponent(getCookie('name'))
+        document.getElementById("email").value = decodeURIComponent(getCookie('email'))
+    }
+
+    // This function uses native browser web socket to request a  persistent 
+    // connection to a WebSocket API endpoint
+    async function connectToServer() {
+        name = decodeURIComponent(document.getElementById("name").value)
+        email = decodeURIComponent(document.getElementById("email").value)
+
+        document.getElementById("name_label").innerHTML = `<span class="label" style="float:left;">${name}</span>`
+
+        // const ws_host = await getws_host()
+        const ws_host = getCookie('ws_host')
+
+        const ws_ = new WebSocket(`wss://${ws_host}/forum?name=${name}&email=${email}`);
+        ws_.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+        return new Promise((resolve, reject) => {
+            const timer = setInterval(() => {
+                if (ws_.readyState === ws_.OPEN) {
+                    clearInterval(timer);
+                    resolve(ws_);
+                }
+            }, 10);
+        });
+    }
+
+    //color utility function
+    var intToRGB = function (value) {
+        var blue = Math.floor(value % 256);
+        var green = Math.floor(value / 256 % 256);
+        var red = Math.floor(value / 256 / 256 % 256);
+
+        return "rgb(" + red + "," + green + "," + blue + ")";
+    }
+
+    //This function retrieves the value of a cookie set on the header.
+    function getCookie(cookiename) {
+        let a = `; ${document.cookie}`.match(`;\\s*${cookiename}=([^;]+)`);
+        return a ? a[1] : '';
+    }
+
+</script>
+
+</html>

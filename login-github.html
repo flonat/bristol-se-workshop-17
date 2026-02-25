@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with GitHub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+        }
+
+        .login-button {
+            background-color: #24292e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-button:hover {
+            background-color: #444d56;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Welcome to SSE-Forum</h1>
+    <p>Click the button below to log in with GitHub:</p>
+    <a>
+        <button class="login-button" onclick="createSession()">Login with GitHub</button>
+    </a>
+</body>
+<script>
+    async function createSession() {
+        try {
+            const response = await fetch('/session', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                doauth();
+            } else {
+                console.error('Failed to create session:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error making request to /session:', error);
+        }
+    }
+
+    async function doauth() {
+        try {
+            const response = await fetch('/auth', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const redirectUrl = await response.text();
+                console.log('Redirecting to:', redirectUrl);
+                window.location.href = redirectUrl;
+            } else {
+                console.error('Failed to doauth:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error making request to /auth:', error);
+        }
+    }
+
+    function getCookie(cookiename) {
+        let a = `; ${document.cookie}`.match(`;\\s*${cookiename}=([^;]+)`);
+        return a ? a[1] : '';
+    }
+</script>
+
+</html>

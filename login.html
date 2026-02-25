@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with Google</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+        }
+
+        .login-button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-button:hover {
+            background-color: #357ae8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Welcome to SSE-Forum</h1>
+    <p>Click the button below to log in with Google:</p>
+    <a>
+        <button class="login-button" onclick="createSession()">Login with Google</button>
+    </a>
+</body>
+<script>
+    // Make a REST request to the /session endpoint
+    async function createSession() {
+        try {
+            const response = await fetch('/session', {
+                method: 'GET', // Use GET or POST depending on your server implementation
+                credentials: 'include' // Include cookies in the request
+            });
+
+            if (response.ok) {
+                doauth();
+                
+            } else {
+                console.error('Failed to create session:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error making request to /session:', error);
+        }
+    }
+
+    // Make a REST request to the /auth endpoint
+    async function doauth() {
+        try {
+            const response = await fetch('/auth', {
+                method: 'GET', // Use GET or POST depending on your server implementation
+                credentials: 'include' // Include cookies in the request
+            });
+
+            if (response.ok) {
+                const redirectUrl = await response.text(); // Get the response URL as plain text
+                console.log('Redirecting to:', redirectUrl);
+                window.location.href = redirectUrl; // Redirect to the URL provided by the server
+                
+            } else {
+                console.error('Failed to doauth:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error making request to /auth:', error);
+        }
+    }
+
+    //This function retrieves the value of a cookie set on the header.
+    function getCookie(cookiename) {
+        let a = `; ${document.cookie}`.match(`;\\s*${cookiename}=([^;]+)`);
+        return a ? a[1] : '';
+    }
+</script>
+
+</html>
